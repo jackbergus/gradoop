@@ -44,7 +44,7 @@ import java.util.Objects;
  * The graph grouping operator represents every vertex group by a single super
  * vertex in the resulting graph; (super) edges between vertices in the
  * resulting graph represent a group of edges between the vertex group members
- * of the original graph. Grouping is defined by specifying grouping keys for
+ * of the extendBasic graph. Grouping is defined by specifying grouping keys for
  * vertices and edges, respectively, similarly as for GROUP BY in SQL.
  * <p>
  * Consider the following example:

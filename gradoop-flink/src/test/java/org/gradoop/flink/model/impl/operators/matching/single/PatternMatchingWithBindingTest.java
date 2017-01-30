@@ -28,9 +28,9 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 /**
- * This is a test class used for all Patter Matching Algorithms that attach a variable mapping to
+ * This is a joinByType class used for all Patter Matching Algorithms that attach a variable mapping to
  * the resulting graph heads.
- * It contains an additional test that check the presents of these mappings
+ * It contains an additional joinByType that check the presents of these mappings
  */
 public abstract class PatternMatchingWithBindingTest extends PatternMatchingTest {
 

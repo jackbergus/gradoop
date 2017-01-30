@@ -59,7 +59,7 @@ public abstract class PatternMatching implements
    */
   private final QueryHandler queryHandler;
   /**
-   * If true, the original vertex and edge data gets attached to the resulting
+   * If true, the extendBasic vertex and edge data gets attached to the resulting
    * vertices and edges.
    */
   private final boolean attachData;
@@ -76,7 +76,7 @@ public abstract class PatternMatching implements
    * Constructor
    *
    * @param query       GDL query graph
-   * @param attachData  true, if original data shall be attached to the result
+   * @param attachData  true, if extendBasic data shall be attached to the result
    * @param log         Logger of the concrete implementation
    */
   public PatternMatching(String query, boolean attachData, Logger log) {
@@ -138,10 +138,10 @@ public abstract class PatternMatching implements
   }
 
   /**
-   * Determines if the original vertex and edge data shall be attached
+   * Determines if the extendBasic vertex and edge data shall be attached
    * to the vertices/edges in the resulting subgraphs.
    *
-   * @return true, if original data must be attached
+   * @return true, if extendBasic data must be attached
    */
   protected boolean doAttachData() {
     return attachData;

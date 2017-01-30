@@ -106,7 +106,7 @@ public class ExplorativePatternMatching
    * Create new operator instance
    *
    * @param query                   GDL query graph
-   * @param attachData              true, if original data shall be attached
+   * @param attachData              true, if extendBasic data shall be attached
    *                                to the result
    * @param matchStrategy           match strategy for vertex and edge mappings
    * @param traverserStrategy       iteration strategy for distributed traversal
@@ -256,7 +256,7 @@ public class ExplorativePatternMatching
      */
     private String query;
     /**
-     * Attach original vertex and edge data
+     * Attach extendBasic vertex and edge data
      */
     private boolean attachData;
     /**
@@ -304,7 +304,7 @@ public class ExplorativePatternMatching
     }
 
     /**
-     * Set if the original vertex and edge data shall be attached to the result.
+     * Set if the extendBasic vertex and edge data shall be attached to the result.
      *
      * @param attachData true, iff data shall be attached
      * @return modified builder

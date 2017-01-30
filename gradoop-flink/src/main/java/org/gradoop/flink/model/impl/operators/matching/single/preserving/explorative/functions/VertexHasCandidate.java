@@ -43,7 +43,7 @@ public class VertexHasCandidate<K> extends RichFilterFunction<IdWithCandidates<K
    */
   private final TraversalCode traversalCode;
   /**
-   * Candidate to test on
+   * Candidate to joinByType on
    */
   private int candidate;
 

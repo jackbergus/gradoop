@@ -57,7 +57,7 @@ public class TLFDataSinkTest extends GradoopFlinkTestBase {
 
     getExecutionEnvironment().execute();
 
-    // compare original graph and written one
+    // compare extendBasic graph and written one
     collectAndAssertTrue(dataSource.getGraphCollection()
       .equalsByGraphElementData(dataSource2.getGraphCollection()));
   }

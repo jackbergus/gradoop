@@ -34,7 +34,7 @@ public abstract class InitElement
   <EL extends Element, K extends Comparable<K>> implements Serializable {
 
   /**
-   * Decides if lineage info (original identifier) shall be stored
+   * Decides if lineage info (extendBasic identifier) shall be stored
    */
   private final boolean keepLineage;
 

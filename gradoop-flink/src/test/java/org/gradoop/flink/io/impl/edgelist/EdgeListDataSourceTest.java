@@ -43,7 +43,7 @@ public class EdgeListDataSourceTest extends GradoopFlinkTestBase {
 
     LogicalGraph resultGraph = loader.getLogicalGraphByVariable("result");
 
-    // test element data
+    // joinByType element data
     collectAndAssertTrue(resultGraph.equalsByElementData(tsvGraph));
 
   }

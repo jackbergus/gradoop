@@ -83,10 +83,10 @@ public class PostProcessor {
 
   /**
    * Extracts a {@link GraphCollection} from a set of {@link Element} and
-   * attaches the original data from the input {@link LogicalGraph}.
+   * attaches the extendBasic data from the input {@link LogicalGraph}.
    *
    * @param elements      EPGM elements
-   * @param inputGraph    original input graph
+   * @param inputGraph    extendBasic input graph
    * @param mayOverlap    true, if elements may be contained in multiple graphs
    * @return Graph collection
    */
@@ -220,11 +220,11 @@ public class PostProcessor {
   }
 
   /**
-   * Initializes EPGM vertices including their original data from the given
+   * Initializes EPGM vertices including their extendBasic data from the given
    * pattern matching result.
    *
    * @param result        pattern matching result
-   * @param inputVertices original data graph vertices
+   * @param inputVertices extendBasic data graph vertices
    * @return EPGM vertices including data
    */
   public static DataSet<Vertex> extractVerticesWithData(
@@ -236,11 +236,11 @@ public class PostProcessor {
   }
 
   /**
-   * Initializes EPGM edges including their original data from the given pattern
+   * Initializes EPGM edges including their extendBasic data from the given pattern
    * matching result.
    *
    * @param result      pattern matching result
-   * @param inputEdges  original data graph edges
+   * @param inputEdges  extendBasic data graph edges
    * @return EPGM edges including data
    */
   public static DataSet<Edge> extractEdgesWithData(DataSet<FatVertex> result,

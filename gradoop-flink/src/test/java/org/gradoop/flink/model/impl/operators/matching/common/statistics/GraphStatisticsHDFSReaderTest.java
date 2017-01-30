@@ -8,7 +8,7 @@ import org.junit.BeforeClass;
 
 public class GraphStatisticsHDFSReaderTest extends GraphStatisticsTest {
   /**
-   * Handles the test cluster which is started for during unit testing.
+   * Handles the joinByType cluster which is started for during unit testing.
    */
   private static HBaseTestingUtility utility;
 
@@ -19,7 +19,7 @@ public class GraphStatisticsHDFSReaderTest extends GraphStatisticsTest {
       utility.startMiniCluster().waitForActiveAndReadyMaster();
     }
 
-    // copy test resources to HDFS
+    // copy joinByType resources to HDFS
     Path localPath = new Path(GraphStatisticsHDFSReaderTest.class.getResource("/data/json/sna/statistics").getPath());
     Path remotePath = new Path("/");
     utility.getTestFileSystem().copyFromLocalFile(localPath, remotePath);

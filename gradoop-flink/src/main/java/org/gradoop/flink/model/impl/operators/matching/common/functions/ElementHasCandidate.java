@@ -35,14 +35,14 @@ import org.gradoop.flink.model.impl.operators.matching.common.tuples
 public class ElementHasCandidate<K> implements FilterFunction<IdWithCandidates<K>> {
 
   /**
-   * Candidate to test on
+   * Candidate to joinByType on
    */
   private final int candidate;
 
   /**
    * Constructor
    *
-   * @param candidate candidate to test on
+   * @param candidate candidate to joinByType on
    */
   public ElementHasCandidate(int candidate) {
     this.candidate = candidate;

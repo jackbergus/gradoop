@@ -254,7 +254,7 @@ public class FusionTestBuilder extends AbstractTestBuilder {
     FusionTestBuilder ft = new FusionTestBuilder();
     ft.check();
     ft.generateToFile(
-      new File("./src/test/java/org/gradoop/flink/model/impl/operators/fusion/FusionTest.java"),
+      new File("./src/joinByType/java/org/gradoop/flink/model/impl/operators/fusion/FusionTest.java"),
       "Fusion",
       "empty empty empty" + "\nempty emptyVertex empty" + "\nemptyVertex empty emptyVertex" +
         "\nemptyVertex graphWithA emptyVertex" + "\nemptyVertex emptyVertex singleInside" +

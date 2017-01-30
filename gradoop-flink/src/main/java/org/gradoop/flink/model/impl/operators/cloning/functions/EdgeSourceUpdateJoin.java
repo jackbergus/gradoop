@@ -24,7 +24,7 @@ import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.id.GradoopId;
 
 /**
- * Joins edges with a Tuple2 that contains the id of the original edge
+ * Joins edges with a Tuple2 that contains the id of the extendBasic edge
  * source in its first field and the id of the new edge source vertex in its
  * second.
  * The output is an edge with updated source id.

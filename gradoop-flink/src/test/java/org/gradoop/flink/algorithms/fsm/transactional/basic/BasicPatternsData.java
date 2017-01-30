@@ -1,7 +1,7 @@
 package org.gradoop.flink.algorithms.fsm.transactional.basic;
 
 /**
- * Class to provide test data for fsm tests
+ * Class to provide joinByType data for fsm tests
  */
 public class BasicPatternsData {
 

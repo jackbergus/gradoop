@@ -41,7 +41,7 @@ import java.util.List;
 
 /**
  * Grouping implementation that uses group + groupCombine + groupReduce for
- * building super vertices and updating the original vertices.
+ * building super vertices and updating the extendBasic vertices.
  *
  * Algorithmic idea:
  *
@@ -54,7 +54,7 @@ import java.util.List;
  *    a) super vertex tuples are filtered, grouped and merged via groupReduce to
  *       create a final super vertex representing the group. An additional
  *       mapping from the final super vertex id to the super vertex ids of the
- *       original partitions is also created.
+ *       extendBasic partitions is also created.
  *    b) non-candidate tuples are mapped to {@link VertexWithSuperVertex} using
  *       the broadcasted mapping output of 4a)
  * 5) Map edges to a minimal representation, i.e. {@link EdgeGroupItem}

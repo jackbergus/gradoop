@@ -37,7 +37,7 @@ import java.util.List;
 
 /**
  * Grouping implementation that uses group + groupReduce for building super
- * vertices and updating the original vertices.
+ * vertices and updating the extendBasic vertices.
  *
  * Algorithmic idea:
  *

@@ -66,12 +66,12 @@ public interface LogicalGraphOperators extends GraphBaseOperators {
    * Returns a graph collection containing all subgraphs of the input graph
    * that match the given graph pattern.
    *
-   * This method allows to control if the original vertex and edge data
+   * This method allows to control if the extendBasic vertex and edge data
    * (labels and properties) shall be attached to the resulting subgraphs.
    * Note that this requires additional JOIN operations.
    *
    * @param pattern     GDL graph pattern
-   * @param attachData  attach original vertex and edge data to the result
+   * @param attachData  attach extendBasic vertex and edge data to the result
    * @return subgraphs of the input graph that match the given graph pattern
    */
   GraphCollection match(String pattern, boolean attachData);
@@ -85,7 +85,7 @@ public interface LogicalGraphOperators extends GraphBaseOperators {
    * query.
    *
    * @param pattern           GDL graph pattern
-   * @param attachData        attach original vertex and edge data to the result
+   * @param attachData        attach extendBasic vertex and edge data to the result
    * @param matchStrategy     strategy for vertex and edge mappings
    * @param iterationStrategy strategy for internal iteration
    * @return subgraphs of the input graph that match the given graph pattern

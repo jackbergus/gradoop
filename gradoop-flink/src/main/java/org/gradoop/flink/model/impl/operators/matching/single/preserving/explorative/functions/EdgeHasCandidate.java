@@ -45,7 +45,7 @@ public class EdgeHasCandidate<K> extends RichFilterFunction<TripleWithCandidates
   private final TraversalCode traversalCode;
 
   /**
-   * Candidate to test on
+   * Candidate to joinByType on
    */
   private int candidate;
 

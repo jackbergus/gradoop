@@ -74,7 +74,7 @@ public class DualSimulation extends PatternMatching {
    * Creates a new operator instance.
    *
    * @param query       GDL based query
-   * @param attachData  attach original data to resulting vertices/edges
+   * @param attachData  attach extendBasic data to resulting vertices/edges
    * @param useBulk     true to use bulk, false to use delta iteration
    */
   public DualSimulation(String query, boolean attachData, boolean useBulk) {
