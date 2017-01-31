@@ -11,11 +11,11 @@ import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.GraphHead;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.api.functions.Function;
-import org.gradoop.flink.model.impl.operators.join.edgesemantics.GeneralSemantics;
+import org.gradoop.flink.model.impl.operators.join.edgesemantics.GeneralEdgeSemantics;
 import org.gradoop.flink.model.impl.operators.join.operators.PreFilter;
 
 /**
- * Created by vasistas on 31/01/17.
+ * Created by Giacomo Bergami on 31/01/17.
  */
 public class GraphEdgeJoin extends GeneralJoinPlan<GradoopId> {
 
@@ -36,7 +36,7 @@ public class GraphEdgeJoin extends GeneralJoinPlan<GradoopId> {
   private final DataSet<Edge> relations;
 
 
-  public GraphEdgeJoin(JoinType vertexJoinType, GeneralSemantics edgeSemanticsImplementation,
+  public GraphEdgeJoin(JoinType vertexJoinType, GeneralEdgeSemantics edgeSemanticsImplementation,
     DataSet<Edge> relations, @Nullable Function<Vertex, Function<Vertex, Boolean>> thetaVertex,
     @Nullable Function<GraphHead, Function<GraphHead, Boolean>> thetaGraph,
     @Nullable Function<String, Function<String, String>> vertexLabelConcatenation,

@@ -21,7 +21,7 @@ import org.gradoop.flink.model.api.functions.Function;
 import org.gradoop.flink.model.api.operators.BinaryGraphToGraphOperator;
 import org.gradoop.flink.model.impl.LogicalGraph;
 import org.gradoop.flink.model.impl.functions.tuple.Project2To1;
-import org.gradoop.flink.model.impl.operators.join.edgesemantics.GeneralSemantics;
+import org.gradoop.flink.model.impl.operators.join.edgesemantics.GeneralEdgeSemantics;
 import org.gradoop.flink.model.impl.operators.join.operators.OptSerializable;
 import org.gradoop.flink.model.impl.operators.join.operators.PreFilter;
 import org.gradoop.flink.model.impl.operators.join.operators.Oplus;
@@ -50,7 +50,7 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
   private final Oplus<Vertex> combineVertices;
   private final Oplus<GraphHead> combineHeads;
   private DataSet<Tuple2<GradoopId, Vertex>> leftV, rightV;
-  private final GeneralSemantics edgeSemanticsImplementation;
+  private final GeneralEdgeSemantics edgeSemanticsImplementation;
 
   private DataSet<ResultingJoinVertex> lrVjoin;
 
@@ -115,7 +115,7 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
   public GeneralJoinPlan(
 
     JoinType vertexJoinType,
-    GeneralSemantics edgeSemanticsImplementation,
+    GeneralEdgeSemantics edgeSemanticsImplementation,
 
     @Nullable PreFilter<Vertex, PV> leftPreFilter,
     @Nullable PreFilter<Vertex, PV> rightPreFilter,

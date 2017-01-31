@@ -13,19 +13,19 @@ import org.gradoop.flink.model.impl.operators.join.tuples.CombiningEdgeTuples;
 /**
  * Created by Giacomo Bergami on 30/01/17.
  */
-public class GeneralSemantics {
+public class GeneralEdgeSemantics {
   public final JoinType edgeJoinType;
   public final FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge> joiner;
 
-  public GeneralSemantics(JoinType edgeJoinType,
+  public GeneralEdgeSemantics(JoinType edgeJoinType,
     FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge> joiner) {
     this.edgeJoinType = edgeJoinType;
     this.joiner = joiner;
   }
 
-  public static GeneralSemantics fromEdgePredefinedSemantics(
+  public static GeneralEdgeSemantics fromEdgePredefinedSemantics(
     final Function<CombiningEdgeTuples,Function<CombiningEdgeTuples, Boolean>> thetaEdge,
-    final EdgePredefinedSemantics es,
+    final PredefinedEdgeSemantics es,
     Function<String,Function<String, String>> edgeLabelConcatenation) {
     Oplus<Edge> combinateEdges = Oplus.generate(() -> {
       Edge v = new Edge();
@@ -35,9 +35,9 @@ public class GeneralSemantics {
     return fromEdgePredefinedSemantics(thetaEdge,es,combinateEdges);
   }
 
-  private static GeneralSemantics fromEdgePredefinedSemantics(
+  private static GeneralEdgeSemantics fromEdgePredefinedSemantics(
     final Function<CombiningEdgeTuples,Function<CombiningEdgeTuples, Boolean>> thetaEdge,
-    final EdgePredefinedSemantics es,
+    final PredefinedEdgeSemantics es,
     final Oplus<Edge> combineEdges)
   {
     JoinType edgeJoinType = null;
@@ -100,7 +100,7 @@ public class GeneralSemantics {
     }
       break;
     }
-    return new GeneralSemantics(edgeJoinType,joiner);
+    return new GeneralEdgeSemantics(edgeJoinType,joiner);
   }
 
 }
