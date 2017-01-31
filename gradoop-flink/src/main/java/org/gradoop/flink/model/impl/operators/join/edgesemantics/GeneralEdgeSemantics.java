@@ -1,3 +1,20 @@
+/*
+ * This file is part of Gradoop.
+ *
+ * Gradoop is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gradoop is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package org.gradoop.flink.model.impl.operators.join.edgesemantics;
 
 import org.apache.flink.api.common.functions.FlatJoinFunction;
@@ -24,25 +41,23 @@ public class GeneralEdgeSemantics {
   }
 
   public static GeneralEdgeSemantics fromEdgePredefinedSemantics(
-    final Function<CombiningEdgeTuples,Function<CombiningEdgeTuples, Boolean>> thetaEdge,
+    final Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> thetaEdge,
     final PredefinedEdgeSemantics es,
-    Function<String,Function<String, String>> edgeLabelConcatenation) {
+    Function<String, Function<String, String>> edgeLabelConcatenation) {
     Oplus<Edge> combinateEdges = Oplus.generate(() -> {
       Edge v = new Edge();
       v.setId(GradoopId.get());
       return v;
     }, JoinUtils.generateConcatenator(edgeLabelConcatenation));
-    return fromEdgePredefinedSemantics(thetaEdge,es,combinateEdges);
+    return fromEdgePredefinedSemantics(thetaEdge, es, combinateEdges);
   }
 
   private static GeneralEdgeSemantics fromEdgePredefinedSemantics(
-    final Function<CombiningEdgeTuples,Function<CombiningEdgeTuples, Boolean>> thetaEdge,
-    final PredefinedEdgeSemantics es,
-    final Oplus<Edge> combineEdges)
-  {
+    final Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> thetaEdge,
+    final PredefinedEdgeSemantics es, final Oplus<Edge> combineEdges) {
     JoinType edgeJoinType = null;
     FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge> joiner = null;
-    final Function<CombiningEdgeTuples,Function<CombiningEdgeTuples, Boolean>> finalThetaEdge =
+    final Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> finalThetaEdge =
       JoinUtils.extendBasic2(thetaEdge);
     switch (es) {
     case CONJUNCTIVE: {
@@ -51,25 +66,25 @@ public class GeneralEdgeSemantics {
         @Override
         public void join(CombiningEdgeTuples first, CombiningEdgeTuples second,
           Collector<Edge> out) throws Exception {
-            if (first.f2.getId().equals(second.f2.getId())) {
-              if (finalThetaEdge.apply(first).apply(second)) {
-                Edge prepared = combineEdges.apply(first.f1).apply(second.f1);
-                prepared.setSourceId(first.f0.getId());
-                prepared.setTargetId(first.f2.getId());
-                out.collect(prepared);
-              }
+          if (first.f2.getId().equals(second.f2.getId())) {
+            if (finalThetaEdge.apply(first).apply(second)) {
+              Edge prepared = combineEdges.apply(first.f1).apply(second.f1);
+              prepared.setSourceId(first.f0.getId());
+              prepared.setTargetId(first.f2.getId());
+              out.collect(prepared);
             }
+          }
         }
       };
     }
-      break;
+    break;
     case DISJUNCTIVE: {
       edgeJoinType = JoinType.FULL_OUTER;
       joiner = new FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge>() {
         @Override
         public void join(CombiningEdgeTuples first, CombiningEdgeTuples second,
           Collector<Edge> out) throws Exception {
-          if (first!=null && second!=null) {
+          if (first != null && second != null) {
             if (first.f2.getId().equals(second.f2.getId())) {
               if (finalThetaEdge.apply(first).apply(second)) {
                 Edge prepared = combineEdges.apply(first.f1).apply(second.f1);
@@ -78,7 +93,7 @@ public class GeneralEdgeSemantics {
                 out.collect(prepared);
               }
             }
-          } else if (first!=null) {
+          } else if (first != null) {
             Edge e = new Edge();
             e.setSourceId(first.f0.getId());
             e.setTargetId(first.f2.getId());
@@ -98,9 +113,9 @@ public class GeneralEdgeSemantics {
         }
       };
     }
-      break;
+    break;
     }
-    return new GeneralEdgeSemantics(edgeJoinType,joiner);
+    return new GeneralEdgeSemantics(edgeJoinType, joiner);
   }
 
 }

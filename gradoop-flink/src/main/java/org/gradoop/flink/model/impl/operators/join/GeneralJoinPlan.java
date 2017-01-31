@@ -1,3 +1,20 @@
+/*
+ * This file is part of Gradoop.
+ *
+ * Gradoop is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Gradoop is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package org.gradoop.flink.model.impl.operators.join;
 
 import com.sun.istack.Nullable;
@@ -32,8 +49,9 @@ import java.util.Objects;
 
 /**
  * Created by Giacomo Bergami on 30/01/17.
+ *
  * @param <PV> value over which, eventually, perform the multi-key join
- *            (activated by the PreFilter parameters)
+ *             (activated by the PreFilter parameters)
  */
 public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
 
@@ -56,72 +74,63 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
 
   /**
    * This class defines the general interface for all the possible graph join operations.
-   *
+   * <p>
    * The two logical graphs are joined with a non-empty result iff. the properties of the
    * two graphs match as defined in {@code thetaGraph}
-   *
+   * <p>
    * Please note that:
    * * If both {@code leftPreFilter} and {@code rightPreFilter} are choosed, then a join is
-   *   done over the {@code <PV>} parameter value
+   * done over the {@code <PV>} parameter value
    * * If either {@code leftPreFilter} or {@code rightPreFilter} are not null, then the non
-   *   null value is re-mapped into a DataSet of vertices and used in the join for the following
-   *   case:
+   * null value is re-mapped into a DataSet of vertices and used in the join for the following
+   * case:
    * * If both {@code leftPreFilter} and {@code rightPreFilter} are null, then the graph join
-   *   is performed using the hashing functions {@code leftHash} and {@code rightHash}
-   *
+   * is performed using the hashing functions {@code leftHash} and {@code rightHash}
+   * <p>
    * In all the previously depicted scenarios, the vertices undergo a filtering function,
    * {@code thetaVertex}.
    *
-   * @param vertexJoinType                A Inner/Left/Right/Full graph join depend on the
-   *                                      Inner/Left/Right/Full join performed over the vertices
-   * @param edgeSemanticsImplementation   This class casts all the information about the way to
-   *                                      combine the edges
-   *
-   * @param leftPreFilter                 Non-Serializable function for mapping a vertex DataSet
-   *                                      from the left graph into a dataset where vertices
-   *                                      are extended with their joining key (ideal when
-   *                                      there could be multiple join keys for the same vertex)
-   * @param rightPreFilter                Non-Serializable function for mapping a vertex DataSet
-   *                                      from the right graph into a dataset where vertices
-   *                                      are extended with their joining key (ideal when
-   *                                      there could be multiple join keys for the same vertex)
-   *
-   * @param leftHash                      Hashing function used when both PreFilters are not used
-   *                                      for the vertices of the left graph. If it is {@code
-   *                                       null}, then the {@code 0L} constant function is
-   *                                      used instead
-   * @param rightHash                     Hashing function used when both PreFilters are not used
-   *                                      for the vertices of the right graph. If it is {@code
-   *                                       null}, then the {@code 0L} constant function is
-   *                                      used instead
-   *
-   * @param thetaVertex                   Predicate test function to be used over the vertices
-   *                                      that undergo a join. It'll be extended with the
-   *                                      {@code Properties} validity test. Such test consists
-   *                                      into verifying if the graph vertex has property keys
-   *                                      with the same value.
-   *
-   * @param thetaGraph                    Predicate test used to check if the graphs must undergo
-   *                                      the joining algorithm.
-   *
-   * @param vertexLabelConcatenation      Given the vertex labels belonging to the vertices that
-   *                                      have to be fused, return the new label obtained from the
-   *                                      two original ones
-   * @param graphLabelConcatenation       Given the graph label belonging to the to-be-joined
-   *                                      graphs, returns a graph with such label if the graph
-   *                                      conditions are met
-   *
+   * @param vertexJoinType              A Inner/Left/Right/Full graph join depend on the
+   *                                    Inner/Left/Right/Full join performed over the vertices
+   * @param edgeSemanticsImplementation This class casts all the information about the way to
+   *                                    combine the edges
+   * @param leftPreFilter               Non-Serializable function for mapping a vertex DataSet
+   *                                    from the left graph into a dataset where vertices
+   *                                    are extended with their joining key (ideal when
+   *                                    there could be multiple join keys for the same vertex)
+   * @param rightPreFilter              Non-Serializable function for mapping a vertex DataSet
+   *                                    from the right graph into a dataset where vertices
+   *                                    are extended with their joining key (ideal when
+   *                                    there could be multiple join keys for the same vertex)
+   * @param leftHash                    Hashing function used when both PreFilters are not used
+   *                                    for the vertices of the left graph. If it is {@code
+   *                                    null}, then the {@code 0L} constant function is
+   *                                    used instead
+   * @param rightHash                   Hashing function used when both PreFilters are not used
+   *                                    for the vertices of the right graph. If it is {@code
+   *                                    null}, then the {@code 0L} constant function is
+   *                                    used instead
+   * @param thetaVertex                 Predicate test function to be used over the vertices
+   *                                    that undergo a join. It'll be extended with the
+   *                                    {@code Properties} validity test. Such test consists
+   *                                    into verifying if the graph vertex has property keys
+   *                                    with the same value.
+   * @param thetaGraph                  Predicate test used to check if the graphs must undergo
+   *                                    the joining algorithm.
+   * @param vertexLabelConcatenation    Given the vertex labels belonging to the vertices that
+   *                                    have to be fused, return the new label obtained from the
+   *                                    two original ones
+   * @param graphLabelConcatenation     Given the graph label belonging to the to-be-joined
+   *                                    graphs, returns a graph with such label if the graph
+   *                                    conditions are met
    */
   public GeneralJoinPlan(
 
-    JoinType vertexJoinType,
-    GeneralEdgeSemantics edgeSemanticsImplementation,
+    JoinType vertexJoinType, GeneralEdgeSemantics edgeSemanticsImplementation,
 
-    @Nullable PreFilter<Vertex, PV> leftPreFilter,
-    @Nullable PreFilter<Vertex, PV> rightPreFilter,
+    @Nullable PreFilter<Vertex, PV> leftPreFilter, @Nullable PreFilter<Vertex, PV> rightPreFilter,
 
-    @Nullable Function<Vertex, Long> leftHash,
-    @Nullable Function<Vertex, Long> rightHash,
+    @Nullable Function<Vertex, Long> leftHash, @Nullable Function<Vertex, Long> rightHash,
 
     @Nullable Function<Vertex, Function<Vertex, Boolean>> thetaVertex,
     @Nullable Function<GraphHead, Function<GraphHead, Boolean>> thetaGraph,
@@ -207,18 +216,17 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
         }
       });
 
+
     joinVertices(firstGraph.getVertices(), secondGraph.getVertices());
-    DataSet<Vertex> vertices =
-      lrVjoin.map((ResultingJoinVertex x) -> x.f2).distinct().crossWithTiny(gh.first(1))
-        .with(new CrossFunction<Vertex, GraphHead, Vertex>() {
-          @Override
-          public Vertex cross(Vertex val1, GraphHead val2) throws Exception {
-            return val1;
-          }
-        }).map((Vertex x) -> {
-        x.addGraphId(gid);
-        return x;
-      });
+    DataSet<Vertex> vertices = lrVjoin.crossWithTiny(gh.first(1))
+      .with(new CrossFunction<ResultingJoinVertex, GraphHead, Vertex>() {
+        @Override
+        public Vertex cross(ResultingJoinVertex val1, GraphHead val2) throws Exception {
+          Vertex toret = val1.f2;
+          toret.addGraphId(val2.getId());
+          return toret;
+        }
+      }).distinct();
 
     DataSet<CombiningEdgeTuples> leftE = joinEdgePerGraph(firstGraph.getEdges());
     DataSet<CombiningEdgeTuples> rightE = joinEdgePerGraph(secondGraph.getEdges());
@@ -226,11 +234,9 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
       .with(new CrossFunction<Edge, GraphHead, Edge>() {
         @Override
         public Edge cross(Edge val1, GraphHead val2) throws Exception {
+          val1.addGraphId(val2.getId());
           return val1;
         }
-      }).map((Edge x) -> {
-        x.addGraphId(gid);
-        return x;
       });
 
     return LogicalGraph.fromDataSets(gh, vertices, edges, firstGraph.getConfig());
