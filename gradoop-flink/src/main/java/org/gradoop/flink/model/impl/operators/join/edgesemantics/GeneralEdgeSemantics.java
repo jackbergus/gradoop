@@ -19,18 +19,25 @@ package org.gradoop.flink.model.impl.operators.join.edgesemantics;
 
 import org.apache.flink.api.common.functions.FlatJoinFunction;
 import org.apache.flink.api.java.operators.join.JoinType;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.util.Collector;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
+import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.api.functions.Function;
 import org.gradoop.flink.model.impl.operators.join.JoinUtils;
-import org.gradoop.flink.model.impl.operators.join.operators.Oplus;
+import org.gradoop.flink.model.impl.operators.join.edgesemantics.blocks.ConjunctiveFlatJoinFunction;
+import org.gradoop.flink.model.impl.operators.join.edgesemantics.blocks.DisjunctiveFlatJoinFunction;
+import org.gradoop.flink.model.impl.operators.join.functions.Oplus;
+import org.gradoop.flink.model.impl.operators.join.functions.OplusEdges;
 import org.gradoop.flink.model.impl.operators.join.tuples.CombiningEdgeTuples;
+
+import java.io.Serializable;
 
 /**
  * Created by Giacomo Bergami on 30/01/17.
  */
-public class GeneralEdgeSemantics {
+public class GeneralEdgeSemantics implements Serializable {
   public final JoinType edgeJoinType;
   public final FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge> joiner;
 
@@ -43,75 +50,27 @@ public class GeneralEdgeSemantics {
   public static GeneralEdgeSemantics fromEdgePredefinedSemantics(
     final Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> thetaEdge,
     final PredefinedEdgeSemantics es,
-    Function<String, Function<String, String>> edgeLabelConcatenation) {
-    Oplus<Edge> combinateEdges = Oplus.generate(() -> {
-      Edge v = new Edge();
-      v.setId(GradoopId.get());
-      return v;
-    }, JoinUtils.generateConcatenator(edgeLabelConcatenation));
+    Function<Tuple2<String,String>,String> edgeLabelConcatenation) {
+    OplusEdges combinateEdges = new OplusEdges(JoinUtils.generateConcatenator(edgeLabelConcatenation));
     return fromEdgePredefinedSemantics(thetaEdge, es, combinateEdges);
   }
 
   private static GeneralEdgeSemantics fromEdgePredefinedSemantics(
     final Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> thetaEdge,
-    final PredefinedEdgeSemantics es, final Oplus<Edge> combineEdges) {
+    final PredefinedEdgeSemantics es, final OplusEdges combineEdges) {
     JoinType edgeJoinType = null;
     FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge> joiner = null;
-    final Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> finalThetaEdge =
+    final Function<Tuple2<CombiningEdgeTuples,CombiningEdgeTuples>,Boolean> finalThetaEdge =
       JoinUtils.extendBasic2(thetaEdge);
     switch (es) {
     case CONJUNCTIVE: {
       edgeJoinType = JoinType.INNER;
-      joiner = new FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge>() {
-        @Override
-        public void join(CombiningEdgeTuples first, CombiningEdgeTuples second,
-          Collector<Edge> out) throws Exception {
-          if (first.f2.getId().equals(second.f2.getId())) {
-            if (finalThetaEdge.apply(first).apply(second)) {
-              Edge prepared = combineEdges.apply(first.f1).apply(second.f1);
-              prepared.setSourceId(first.f0.getId());
-              prepared.setTargetId(first.f2.getId());
-              out.collect(prepared);
-            }
-          }
-        }
-      };
+      joiner = new ConjunctiveFlatJoinFunction(finalThetaEdge,combineEdges);
     }
     break;
     case DISJUNCTIVE: {
       edgeJoinType = JoinType.FULL_OUTER;
-      joiner = new FlatJoinFunction<CombiningEdgeTuples, CombiningEdgeTuples, Edge>() {
-        @Override
-        public void join(CombiningEdgeTuples first, CombiningEdgeTuples second,
-          Collector<Edge> out) throws Exception {
-          if (first != null && second != null) {
-            if (first.f2.getId().equals(second.f2.getId())) {
-              if (finalThetaEdge.apply(first).apply(second)) {
-                Edge prepared = combineEdges.apply(first.f1).apply(second.f1);
-                prepared.setSourceId(first.f0.getId());
-                prepared.setTargetId(first.f2.getId());
-                out.collect(prepared);
-              }
-            }
-          } else if (first != null) {
-            Edge e = new Edge();
-            e.setSourceId(first.f0.getId());
-            e.setTargetId(first.f2.getId());
-            e.setProperties(first.f1.getProperties());
-            e.setLabel(first.f1.getLabel());
-            e.setId(GradoopId.get());
-            out.collect(e);
-          } else {
-            Edge e = new Edge();
-            e.setSourceId(second.f0.getId());
-            e.setTargetId(second.f2.getId());
-            e.setProperties(second.f1.getProperties());
-            e.setLabel(second.f1.getLabel());
-            e.setId(GradoopId.get());
-            out.collect(e);
-          }
-        }
-      };
+      joiner = new DisjunctiveFlatJoinFunction(finalThetaEdge,combineEdges);
     }
     break;
     }

@@ -15,25 +15,29 @@
  * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.gradoop.flink.model.impl.operators.join.operators;
+package org.gradoop.flink.model.impl.operators.join.functions;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.gradoop.common.model.api.entities.EPGMElement;
 import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.flink.model.api.functions.Function;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.function.Supplier;
 
 /**
  * Created by Giacomo Bergami on 30/01/17.
  */
-public interface  Oplus<K extends EPGMElement> extends Function<K,Function<K,K>> {
+public abstract class  Oplus<K extends EPGMElement> implements Function<Tuple2<K,K>,K>,
+  Serializable {
 
-  K supplyEmpty();
-  String concatenateLabels(String labelLeft, String labelRight);
+  public abstract K supplyEmpty();
+  public abstract String concatenateLabels(String labelLeft, String labelRight);
 
-  public static <K extends EPGMElement> Oplus<K> generate(Supplier<K> supplier, Function<String,
-    Function<String,String>> labelConcatenation) {
+  public static <K extends EPGMElement> Oplus<K> generate(Supplier<K> supplier,
+    Function<Tuple2<String,String>,String>
+    labelConcatenation) {
     return new Oplus<K>() {
       @Override
       public K supplyEmpty() {
@@ -42,17 +46,16 @@ public interface  Oplus<K extends EPGMElement> extends Function<K,Function<K,K>>
 
       @Override
       public String concatenateLabels(String labelLeft, String labelRight) {
-        return labelConcatenation.apply(labelLeft).apply(labelRight);
+        return labelConcatenation.apply(new Tuple2<>(labelLeft,labelRight));
       }
 
     };
   }
 
   @Override
-  default Function<K, K> apply(final K left) {
-    return new Function<K, K>() {
-      @Override
-      public K apply(final K right) {
+  public K apply(Tuple2<K,K> k) {
+    final K left = k.f0;
+    final K right = k.f1;
         K toret = supplyEmpty();
         toret.setId(GradoopId.get());
         toret.setLabel(concatenateLabels(left.getLabel(),right.getLabel()));
@@ -68,8 +71,6 @@ public interface  Oplus<K extends EPGMElement> extends Function<K,Function<K,K>>
           toret.setProperty(x,right.getPropertyValue(x));
         }
         return (toret);
-      }
-    };
   }
 
 

@@ -33,6 +33,7 @@ import org.apache.flink.api.java.typeutils.TypeInfoParser;
 import org.gradoop.common.model.api.entities.EPGMElement;
 import org.gradoop.flink.model.api.functions.Function;
 import org.gradoop.flink.model.impl.functions.tuple.Project2To1;
+import org.gradoop.flink.model.impl.operators.join.functions.StandardStringConcatenation;
 import org.gradoop.flink.model.impl.operators.join.tuples.CombiningEdgeTuples;
 
 import java.util.HashSet;
@@ -85,9 +86,9 @@ public class JoinUtils {
     }
   }
 
-  public static Function<String,Function<String,String>> generateConcatenator(
-    Function<String, Function<String, String>> edgeLabelConcatenation) {
-    return edgeLabelConcatenation==null ? x -> y -> x+y : edgeLabelConcatenation;
+  public static Function<Tuple2<String,String>,String> generateConcatenator(
+    Function<Tuple2<String,String>,String> edgeLabelConcatenation) {
+    return edgeLabelConcatenation==null ? new StandardStringConcatenation() : edgeLabelConcatenation;
   }
 
   public static <T> DataSet<T> project(int pos, DataSet<? extends Tuple> dt) {
@@ -122,59 +123,54 @@ public class JoinUtils {
 
   //CombiningEdgeTuples
 
-  public static <K extends EPGMElement> Function<K, Function<K, Boolean>> extendBasic
+  public static <K extends EPGMElement> Function<Tuple2<K,K>, Boolean> extendBasic
     (Function<K, Function<K, Boolean>> prop) {
-    return new Function<K, Function<K, Boolean>>() {
+    return new Function<Tuple2<K, K>, Boolean>() {
+
+      Function<K, Function<K, Boolean>> local = prop == null ?
+        (e1 -> (e2 -> true)) : prop;
+
       @Override
-      public Function<K, Boolean> apply(final K left) {
-
-        Function<K, Function<K, Boolean>> local = prop == null ?
-          (e1 -> (e2 -> true)) : prop;
-
-        return new Function<K, Boolean>() {
-          @Override
-          public Boolean apply(final K right) {
-            HashSet<String> ll = new HashSet<String>();
-            left.getProperties().getKeys().forEach(ll::add);
-            HashSet<String> rr = new HashSet<String>();
-            right.getProperties().getKeys().forEach(rr::add);
-            ll.retainAll(rr);
-            for (String x : ll) {
-              if (!left.getPropertyValue(x).equals(right.getPropertyValue(x)))
-                return false;
-            }
-            return local.apply(left).apply(right);
-          }
-        };
+      public Boolean apply(Tuple2<K, K> entity) {
+        final K left = entity.f0;
+        final K right = entity.f1;
+        HashSet<String> ll = new HashSet<String>();
+        left.getProperties().getKeys().forEach(ll::add);
+        HashSet<String> rr = new HashSet<String>();
+        right.getProperties().getKeys().forEach(rr::add);
+        ll.retainAll(rr);
+        for (String x : ll) {
+          if (!left.getPropertyValue(x).equals(right.getPropertyValue(x)))
+            return false;
+        }
+        return local.apply(left).apply(right);
       }
     };
   }
 
-  public static  Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> extendBasic2
+  public static  Function<Tuple2<CombiningEdgeTuples,CombiningEdgeTuples>, Boolean>
+  extendBasic2
     (Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> prop) {
-    return new Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>>() {
+    return new Function<Tuple2<CombiningEdgeTuples,CombiningEdgeTuples>, Boolean>() {
       @Override
-      public Function<CombiningEdgeTuples, Boolean> apply(final CombiningEdgeTuples left) {
+      public Boolean apply(final Tuple2<CombiningEdgeTuples,CombiningEdgeTuples> p) {
 
         Function<CombiningEdgeTuples, Function<CombiningEdgeTuples, Boolean>> local = prop == null ?
           (e1 -> (e2 -> true)) : prop;
 
-        return new Function<CombiningEdgeTuples, Boolean>() {
-          @Override
-          public Boolean apply(final CombiningEdgeTuples right) {
             HashSet<String> ll = new HashSet<String>();
-            left.f1.getProperties().getKeys().forEach(ll::add);
+            p.f0.f1.getProperties().getKeys().forEach(ll::add);
             HashSet<String> rr = new HashSet<String>();
-            right.f1.getProperties().getKeys().forEach(rr::add);
+            p.f1.f1.getProperties().getKeys().forEach(rr::add);
             ll.retainAll(rr);
             for (String x : ll) {
-              if (!left.f1.getPropertyValue(x).equals(right.f1.getPropertyValue(x)))
+              if (!p.f0.f1.getPropertyValue(x).equals(p.f1.f1.getPropertyValue(x)))
                 return false;
             }
-            return local.apply(left).apply(right);
-          }
-        };
-      }
+            return local.apply(p.f0).apply(p.f1);
+
+
+      };
     };
   }
 

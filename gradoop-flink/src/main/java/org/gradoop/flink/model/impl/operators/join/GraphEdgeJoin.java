@@ -56,8 +56,8 @@ public class GraphEdgeJoin extends GeneralJoinPlan<GradoopId> {
   public GraphEdgeJoin(JoinType vertexJoinType, GeneralEdgeSemantics edgeSemanticsImplementation,
     DataSet<Edge> relations, @Nullable Function<Vertex, Function<Vertex, Boolean>> thetaVertex,
     @Nullable Function<GraphHead, Function<GraphHead, Boolean>> thetaGraph,
-    @Nullable Function<String, Function<String, String>> vertexLabelConcatenation,
-    @Nullable Function<String, Function<String, String>> graphLabelConcatenation) {
+    @Nullable Function<Tuple2<String,String>,String> vertexLabelConcatenation,
+    @Nullable Function<Tuple2<String,String>,String> graphLabelConcatenation) {
     super(vertexJoinType, edgeSemanticsImplementation,
       relationalJoinPrefilter.apply(true).apply(relations),
       relationalJoinPrefilter.apply(false).apply(relations), null, null, thetaVertex, thetaGraph,

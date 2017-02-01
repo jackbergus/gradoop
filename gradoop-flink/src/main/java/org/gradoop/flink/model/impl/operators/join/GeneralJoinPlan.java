@@ -18,7 +18,6 @@
 package org.gradoop.flink.model.impl.operators.join;
 
 import com.sun.istack.Nullable;
-import org.apache.flink.api.common.functions.CoGroupFunction;
 import org.apache.flink.api.common.functions.CrossFunction;
 import org.apache.flink.api.common.functions.FlatJoinFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
@@ -37,11 +36,17 @@ import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.model.api.functions.Function;
 import org.gradoop.flink.model.api.operators.BinaryGraphToGraphOperator;
 import org.gradoop.flink.model.impl.LogicalGraph;
-import org.gradoop.flink.model.impl.functions.tuple.Project2To1;
+import org.gradoop.flink.model.impl.operators.join.blocks.CoJoinGraphHeads;
+import org.gradoop.flink.model.impl.operators.join.blocks.FunctionToKeySelector;
+import org.gradoop.flink.model.impl.operators.join.blocks.KeySelectorFromRightProjection;
+import org.gradoop.flink.model.impl.operators.join.blocks
+  .KeySelectorFromTupleProjetionWithGradoopId;
+import org.gradoop.flink.model.impl.operators.join.blocks.KeySelectorFromTupleProjetionWithTargetId;
+import org.gradoop.flink.model.impl.operators.join.blocks.VertexJoinCondition;
 import org.gradoop.flink.model.impl.operators.join.edgesemantics.GeneralEdgeSemantics;
-import org.gradoop.flink.model.impl.operators.join.operators.OptSerializable;
+import org.gradoop.flink.model.impl.operators.join.functions.OplusHeads;
+import org.gradoop.flink.model.impl.operators.join.functions.OplusVertex;
 import org.gradoop.flink.model.impl.operators.join.operators.PreFilter;
-import org.gradoop.flink.model.impl.operators.join.operators.Oplus;
 import org.gradoop.flink.model.impl.operators.join.tuples.CombiningEdgeTuples;
 import org.gradoop.flink.model.impl.operators.join.tuples.ResultingJoinVertex;
 
@@ -61,12 +66,12 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
   private KeySelector<Tuple2<Vertex, PV>, PV> projector;
   private final RichFlatJoinFunction<Vertex, Vertex, ResultingJoinVertex> vertexJoinCond;
   private MapFunction<Tuple2<Vertex, PV>, Vertex> mapper = null;
-  private final KeySelector<Vertex, Long> leftHash;
-  private final KeySelector<Vertex, Long> rightHash;
-  private final Function<Vertex, Function<Vertex, Boolean>> thetaVertexF;
-  private final Function<GraphHead, Function<GraphHead, Boolean>> thetaGraph;
-  private final Oplus<Vertex> combineVertices;
-  private final Oplus<GraphHead> combineHeads;
+  private final FunctionToKeySelector leftHash;
+  private final FunctionToKeySelector rightHash;
+  private final Function<Tuple2<Vertex,Vertex>,Boolean> thetaVertex;
+  private final Function<Tuple2<GraphHead,GraphHead>,Boolean> thetaGraph;
+  private final OplusVertex combineVertices;
+  private final OplusHeads combineHeads;
   private DataSet<Tuple2<GradoopId, Vertex>> leftV, rightV;
   private final GeneralEdgeSemantics edgeSemanticsImplementation;
 
@@ -135,21 +140,15 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
     @Nullable Function<Vertex, Function<Vertex, Boolean>> thetaVertex,
     @Nullable Function<GraphHead, Function<GraphHead, Boolean>> thetaGraph,
 
-    @Nullable Function<String, Function<String, String>> vertexLabelConcatenation,
-    @Nullable Function<String, Function<String, String>> graphLabelConcatenation) {
+    @Nullable Function<Tuple2<String,String>,String> vertexLabelConcatenation,
+    @Nullable Function<Tuple2<String,String>,String> graphLabelConcatenation) {
 
 
     this.thetaGraph = JoinUtils.extendBasic(thetaGraph);
-    this.thetaVertexF = JoinUtils.extendBasic(thetaVertex);
+    this.thetaVertex = JoinUtils.extendBasic(thetaVertex);
 
-    this.combineHeads =
-      Oplus.generate(GraphHead::new, JoinUtils.generateConcatenator(graphLabelConcatenation));
-
-    this.combineVertices = Oplus.generate(() -> {
-      Vertex v = new Vertex();
-      v.setId(GradoopId.get());
-      return v;
-    }, JoinUtils.generateConcatenator(vertexLabelConcatenation));
+    this.combineHeads = new OplusHeads(JoinUtils.generateConcatenator(graphLabelConcatenation));
+    this.combineVertices = new OplusVertex(JoinUtils.generateConcatenator(vertexLabelConcatenation));
 
     this.leftPrefilter = leftPreFilter;
     this.rightPrefilter = rightPreFilter;
@@ -158,29 +157,9 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
 
     //this.edgeJoinType = edgeJoinType;
     this.projector = null;
-    this.leftHash = JoinUtils.functionToKeySelector(leftHash == null ? v -> 0L : leftHash);
-    this.rightHash = JoinUtils.functionToKeySelector(rightHash == null ? v -> 0L : rightHash);
-    this.vertexJoinCond = new RichFlatJoinFunction<Vertex, Vertex, ResultingJoinVertex>() {
-      @Override
-      public void join(Vertex first, Vertex second, Collector<ResultingJoinVertex> out) throws
-        Exception {
-        if (first != null && second != null) {
-          if (thetaVertexF.apply(first).apply(second)) {
-            out.collect(new ResultingJoinVertex(OptSerializable.value(first.getId()),
-              OptSerializable.value(second.getId()),
-              GeneralJoinPlan.this.combineVertices.apply(first).apply(second)));
-          }
-        } else if (first == null) {
-          out.collect(
-            new ResultingJoinVertex(OptSerializable.empty(), OptSerializable.value(second.getId()),
-              second));
-        } else {
-          out.collect(
-            new ResultingJoinVertex(OptSerializable.value(first.getId()), OptSerializable.empty(),
-              first));
-        }
-      }
-    };
+    this.leftHash = new FunctionToKeySelector(leftHash);
+    this.rightHash = new FunctionToKeySelector(rightHash);
+    this.vertexJoinCond = new VertexJoinCondition(this.thetaVertex,combineVertices);
   }
 
 
@@ -199,22 +178,11 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
 
     final GradoopId gid = GradoopId.get();
     DataSet<GraphHead> gh =
-      firstGraph.getGraphHead().first(1).coGroup(secondGraph.getGraphHead().first(1)).where(0)
-        .equalTo(0).with(new CoGroupFunction<GraphHead, GraphHead, GraphHead>() {
-        @Override
-        public void coGroup(Iterable<GraphHead> first, Iterable<GraphHead> second,
-          Collector<GraphHead> out) throws Exception {
-          for (GraphHead left : first) {
-            for (GraphHead right : second) {
-              if (thetaGraph.apply(left).apply(right)) {
-                GraphHead gh = combineHeads.apply(left).apply(right);
-                gh.setId(gid);
-                out.collect(gh);
-              }
-            }
-          }
-        }
-      });
+      firstGraph.getGraphHead()
+        .coGroup(secondGraph.getGraphHead())
+        .where((GraphHead x) -> 0)
+        .equalTo((GraphHead y) -> 0)
+        .with(new CoJoinGraphHeads(thetaGraph,combineHeads,gid));
 
 
     joinVertices(firstGraph.getVertices(), secondGraph.getVertices());
@@ -226,7 +194,7 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
           toret.addGraphId(val2.getId());
           return toret;
         }
-      }).distinct();
+      }).distinct((Vertex v)->v.getId());
 
     DataSet<CombiningEdgeTuples> leftE = joinEdgePerGraph(firstGraph.getEdges());
     DataSet<CombiningEdgeTuples> rightE = joinEdgePerGraph(secondGraph.getEdges());
@@ -247,7 +215,8 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
   }
 
   private DataSet<CombiningEdgeTuples> joinEdgePerGraph(DataSet<Edge> edges) {
-    return leftV.join(edges).where((Tuple2<GradoopId, Vertex> t) -> t.f0)
+    return leftV.join(edges)
+      .where(new KeySelectorFromTupleProjetionWithGradoopId())
       .equalTo((Edge e) -> e.getSourceId())
       .with(new JoinFunction<Tuple2<GradoopId, Vertex>, Edge, Tuple2<Vertex, Edge>>() {
         @Override
@@ -258,8 +227,8 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
       }).returns(TypeInfoParser.parse(
         Tuple2.class.getCanonicalName() + "<" + Vertex.class.getCanonicalName() + "," +
           Edge.class.getCanonicalName() + ">")).join(rightV)
-      .where((Tuple2<Vertex, Edge> t) -> t.f1.getTargetId())
-      .equalTo((Tuple2<GradoopId, Vertex> t) -> t.f0).with(
+      .where(new KeySelectorFromTupleProjetionWithTargetId())
+      .equalTo(new KeySelectorFromTupleProjetionWithGradoopId()).with(
         new JoinFunction<Tuple2<Vertex, Edge>, Tuple2<GradoopId, Vertex>, CombiningEdgeTuples>() {
           @Override
           public CombiningEdgeTuples join(Tuple2<Vertex, Edge> first,
@@ -292,7 +261,7 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
        * When we have a demultiplex, then we join by the multiplex condition
        */
       if (projector == null) {
-        projector = JoinUtils.keySelectorFromRightProjection(new Project2To1<Vertex, PV>());
+        projector = new KeySelectorFromRightProjection<Vertex,PV>();
       }
       lrVjoin =
         JoinUtils.joinByType(leftP, rightP, vertexJoinType).where(projector).equalTo(projector)
@@ -318,12 +287,24 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
       if (rightFilter) {
         right = rightP.map(mapper).distinct();
       }
-      lrVjoin = left.join(right).where(leftHash).equalTo(rightHash).with(vertexJoinCond);
+      lrVjoin = left
+        .join(right)
+        .where(leftHash)
+        .equalTo(rightHash)
+        .with(vertexJoinCond);
     }
     leftV = lrVjoin.filter((ResultingJoinVertex x) -> x.f0.isThereElement)
-      .map((ResultingJoinVertex x) -> new Tuple2<GradoopId, Vertex>(x.f0.get(), x.f2));
+      .map((ResultingJoinVertex x) -> new Tuple2<GradoopId, Vertex>(x.f0.get(), x.f2))
+      .returns(TypeInfoParser.parse(Tuple2.class.getCanonicalName()+"<"+GradoopId.class
+        .getCanonicalName()+"," +
+        ""+Vertex.class
+          .getCanonicalName()+">"));
     rightV = lrVjoin.filter((ResultingJoinVertex x) -> x.f1.isThereElement)
-      .map((ResultingJoinVertex x) -> new Tuple2<GradoopId, Vertex>(x.f1.get(), x.f2));
+      .map((ResultingJoinVertex x) -> new Tuple2<GradoopId, Vertex>(x.f1.get(), x.f2))
+      .returns(TypeInfoParser.parse(Tuple2.class.getCanonicalName()+"<"+GradoopId.class
+        .getCanonicalName()+"," +
+        ""+Vertex.class
+        .getCanonicalName()+">"));
   }
 
   private DataSet<Edge> joinEdges(DataSet<CombiningEdgeTuples> left,
@@ -331,7 +312,8 @@ public class GeneralJoinPlan<PV> implements BinaryGraphToGraphOperator {
 
     return JoinUtils.joinByType(left, right, edgeSemanticsImplementation.edgeJoinType)
       .where((CombiningEdgeTuples t) -> t.f0.getId())
-      .equalTo((CombiningEdgeTuples t) -> t.f0.getId()).with(edgeSemanticsImplementation.joiner)
+      .equalTo((CombiningEdgeTuples t) -> t.f0.getId())
+      .with(edgeSemanticsImplementation.joiner)
       .returns(Edge.class);
 
   }
