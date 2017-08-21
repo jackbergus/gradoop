@@ -1,23 +1,20 @@
-/*
- * This file is part of Gradoop.
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
  *
- * Gradoop is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Gradoop is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.gradoop.examples.io;
 
-import com.google.common.collect.Lists;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -25,14 +22,16 @@ import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.DataSetUtils;
 import org.gradoop.common.model.impl.properties.Properties;
+import org.gradoop.flink.io.impl.csv.CSVConstants;
+import org.gradoop.flink.io.impl.csv.CSVDataSink;
 import org.gradoop.flink.io.impl.graph.GraphDataSource;
 import org.gradoop.flink.io.impl.graph.tuples.ImportEdge;
 import org.gradoop.flink.io.impl.graph.tuples.ImportVertex;
-import org.gradoop.flink.io.impl.json.JSONDataSink;
-import org.gradoop.flink.model.impl.LogicalGraph;
+import org.gradoop.flink.model.api.epgm.LogicalGraph;
 import org.gradoop.flink.util.GradoopFlinkConfig;
 
 import java.util.Calendar;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -46,11 +45,11 @@ public class PokecExample {
   /**
    * Filename that contains Pokec profiles
    */
-  private static final String PROFILES = "soc-pokec-profiles.txt";
+  private static final String PROFILES = "/soc-pokec-profiles.txt";
   /**
    * Filename that contains Pokec relationships
    */
-  private static final String RELATIONSHIPS = "soc-pokec-relationships.txt";
+  private static final String RELATIONSHIPS = "/soc-pokec-relationships.txt";
   /**
    * In the dataset, a missing value is denoted by that value.
    */
@@ -64,29 +63,73 @@ public class PokecExample {
    */
   private static final String EDGE_LABEL = "knows";
   /**
-   * Position of the gender attribute in the profiles CSV
+   * Position of the "gender" attribute in the profiles CSV
    */
   private static final int CSV_IDX_GENDER = 3;
   /**
-   * Position of the region attribute in the profiles CSV
+   * Position of the "region" attribute in the profiles CSV
    */
   private static final int CSV_IDX_REGION = 4;
   /**
-   * Position of the age attribute in the profiles CSV
+   * Position of the "age" attribute in the profiles CSV
    */
   private static final int CSV_IDX_AGE = 7;
   /**
+   * Position of the "body" attribute in the profile CSV
+   */
+  private static final int CSV_IDX_BODY = 8;
+  /**
+   * Position of the "I_am_working_in_field" attribute in the profile CSV
+   */
+  private static final int CSV_WORKING_FIELD = 9;
+  /**
+   * Position of the "eye_color" attribute in the profile CSV
+   */
+  private static final int CSV_EYE_COLOR = 16;
+  /**
+   * Position of the "hair_color" attribute in the profile CSV
+   */
+  private static final int CSV_HAIR_COLOR = 17;
+  /**
    * Property key to use for the gender attribute
    */
-  private static final String PROP_KEY_GENDER = "g";
+  private static final String PROP_KEY_GENDER = "gender";
   /**
    * Property key to use for the region attribute
    */
-  private static final String PROP_KEY_REGION = "c";
+  private static final String PROP_KEY_REGION = "region";
   /**
    * Property key to use for the decade attribute
    */
-  private static final String PROP_KEY_DECADE = "dir";
+  private static final String PROP_KEY_DECADE = "decade";
+  /**
+   * Property key to use for the height attribute
+   */
+  private static final String PROP_KEY_HEIGHT = "height";
+  /**
+   * Property key to use for the height group attribute
+   */
+  private static final String PROP_KEY_HEIGHT_GROUP = "height_group";
+  /**
+   * Property key to use for the weight attribute
+   */
+  private static final String PROP_KEY_WEIGHT = "weight";
+  /**
+   * Property key to use for the weight group attribute
+   */
+  private static final String PROP_KEY_WEIGHT_GROUP = "weight_group";
+  /**
+   * Property key to use for the working field attribute
+   */
+  private static final String PROP_KEY_WORKING_FIELD = "working_field";
+  /**
+   * Property key to use for the eye color attribute
+   */
+  private static final String PROP_KEY_EYE_COLOR = "eye_color";
+  /**
+   * Property key to use for the hair color attribute
+   */
+  private static final String PROP_KEY_HAIR_COLOR = "hair_color";
 
   /**
    * Reads the Pokec network from a given directory. The graph can be stored in
@@ -118,15 +161,18 @@ public class PokecExample {
     DataSet<ImportVertex<Long>> importVertices = env
       .readTextFile(profiles)
       .map(new MapFunction<String, ImportVertex<Long>>() {
-        private Pattern p = Pattern.compile("\\t");
+        private Pattern splitPattern = Pattern.compile("\\t");
+
+        private Pattern numberPattern = Pattern.compile("(\\d+)");
 
         private int year = Calendar.getInstance().get(Calendar.YEAR);
 
         private ImportVertex<Long> importVertex = new ImportVertex<>();
 
+        @SuppressWarnings("Duplicates")
         @Override
         public ImportVertex<Long> map(String line) throws Exception {
-          String[] fields = line.split(p.pattern());
+          String[] fields = line.split(splitPattern.pattern());
 
           importVertex.setId(Long.parseLong(fields[0])); // user-id
           importVertex.setLabel(VERTEX_LABEL);
@@ -134,22 +180,60 @@ public class PokecExample {
           Properties properties = Properties.create();
 
           // set gender if existing
-          String genderString = fields[CSV_IDX_GENDER];
-          if (!genderString.equals(NULL_STRING)) {
-            properties.set(PROP_KEY_GENDER, Integer.parseInt(genderString));
+          String field = fields[CSV_IDX_GENDER];
+          if (!field.equals(NULL_STRING)) {
+            int gender = Integer.parseInt(field);
+            properties.set(PROP_KEY_GENDER, gender == 1 ? "male" : "female");
           }
           // set region if existing
           if (!fields[CSV_IDX_REGION].equals(NULL_STRING)) {
-            properties.set(PROP_KEY_REGION, fields[4]);
+            properties.set(PROP_KEY_REGION, fields[CSV_IDX_REGION]);
           }
           // compute year of birth from users age (if existing)
-          String ageString = fields[CSV_IDX_AGE];
-          if (!ageString.equals(NULL_STRING) && !ageString.equals("0")) {
-            int yob = year - Integer.parseInt(ageString);
+          field = fields[CSV_IDX_AGE];
+          if (!field.equals(NULL_STRING) && !field.equals("0")) {
+            int yob = year - Integer.parseInt(field);
             properties.set(PROP_KEY_DECADE, yob - yob % 10);
           }
-          importVertex.setProperties(properties);
+          // try to get the height and the weight of the user
+          field = fields[CSV_IDX_BODY];
+          if (!field.equals(NULL_STRING)) {
+            Matcher matcher = numberPattern.matcher(field);
 
+            if (matcher.find()) {
+              try {
+                int height = Integer.parseInt(matcher.group(1));
+                int heightGroup = height - height % 10;
+                properties.set(PROP_KEY_HEIGHT, height);
+                properties.set(PROP_KEY_HEIGHT_GROUP, heightGroup);
+              } catch (NumberFormatException ignored) { }
+            }
+            if (matcher.find()) {
+              try {
+                int weight = Integer.parseInt(matcher.group(1));
+                int weightGroup = weight - weight % 10;
+                properties.set(PROP_KEY_WEIGHT, weight);
+                properties.set(PROP_KEY_WEIGHT_GROUP, weightGroup);
+              } catch (NumberFormatException ignored) { }
+            }
+          }
+          // set working field if existing
+          field = fields[CSV_WORKING_FIELD];
+          if (!field.equals(NULL_STRING) && !field.contains(CSVConstants.VALUE_DELIMITER)) {
+            properties.set(PROP_KEY_WORKING_FIELD, fields[CSV_WORKING_FIELD]);
+          }
+          // set eye color if existing
+          field = fields[CSV_EYE_COLOR];
+          if (!field.equals(NULL_STRING) && !field.contains(CSVConstants.VALUE_DELIMITER)) {
+            properties.set(PROP_KEY_EYE_COLOR, fields[CSV_EYE_COLOR]);
+          }
+          // set hair color if existing
+          field = fields[CSV_HAIR_COLOR];
+          if (!field.equals(NULL_STRING) && !field.contains(CSVConstants.VALUE_DELIMITER)) {
+            properties.set(PROP_KEY_HAIR_COLOR, fields[CSV_HAIR_COLOR]);
+          }
+
+          importVertex.setProperties(properties);
           return importVertex;
         }
       });
@@ -195,13 +279,9 @@ public class PokecExample {
     // Create an EPGM logical graph
     new GraphDataSource<>(importVertices, importEdges, config)
       .getLogicalGraph()
-      // group the graph by users region and the decade they were born in
-      .groupBy(Lists.newArrayList(PROP_KEY_REGION, PROP_KEY_DECADE))
-      // store the result into json files
-      .writeTo(new JSONDataSink(
-        outputDir + "graphHeads.json",
-        outputDir + "vertices.json",
-        outputDir + "edges.json",
+      // store the result into csv files
+      .writeTo(new CSVDataSink(
+        outputDir,
         config
       ));
 

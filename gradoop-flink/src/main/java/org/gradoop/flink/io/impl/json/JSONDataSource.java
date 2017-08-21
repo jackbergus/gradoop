@@ -1,20 +1,18 @@
-/*
- * This file is part of Gradoop.
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
  *
- * Gradoop is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Gradoop is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.gradoop.flink.io.impl.json;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -22,23 +20,36 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.gradoop.common.model.impl.pojo.Edge;
+import org.gradoop.common.model.impl.pojo.GraphHead;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.flink.io.api.DataSource;
 import org.gradoop.flink.io.impl.json.functions.JSONToEdge;
-import org.gradoop.flink.model.impl.GraphCollection;
-import org.gradoop.flink.model.impl.GraphTransactions;
-import org.gradoop.flink.model.impl.LogicalGraph;
-import org.gradoop.flink.model.impl.operators.combination.ReduceCombination;
-import org.gradoop.flink.util.GradoopFlinkConfig;
 import org.gradoop.flink.io.impl.json.functions.JSONToGraphHead;
 import org.gradoop.flink.io.impl.json.functions.JSONToVertex;
-import org.gradoop.common.model.impl.pojo.GraphHead;
+import org.gradoop.flink.model.api.epgm.GraphCollection;
+import org.gradoop.flink.model.api.epgm.LogicalGraph;
+import org.gradoop.flink.model.impl.operators.combination.ReduceCombination;
+import org.gradoop.flink.util.GradoopFlinkConfig;
 
 /**
  * Creates an EPGM instance from JSON files. The exact format is documented in
  * {@link JSONToGraphHead}, {@link JSONToVertex}, {@link JSONToEdge}.
  */
 public class JSONDataSource extends JSONBase implements DataSource {
+
+  /**
+   * Creates a new data source. The graph is written from the specified path which points to a
+   * directory containing the JSON files. Paths can be local (file://) or HDFS (hdfs://).
+   *
+   * @param inputPath directory containing JSON files
+   * @param config    Gradoop Flink configuration
+   */
+  public JSONDataSource(String inputPath, GradoopFlinkConfig config) {
+    this(inputPath + DEFAULT_GRAPHS_FILE,
+      inputPath + DEFAULT_VERTEX_FILE,
+      inputPath + DEFAULT_EDGE_FILE,
+      config);
+  }
 
   /**
    * Creates a new data source. Paths can be local (file://) or HDFS (hdfs://).
@@ -89,12 +100,7 @@ public class JSONDataSource extends JSONBase implements DataSource {
         getConfig().getGraphHeadFactory().createGraphHead());
     }
 
-    return GraphCollection.fromDataSets(
-      graphHeads, vertices, edges, getConfig());
-  }
-
-  @Override
-  public GraphTransactions getGraphTransactions() {
-    return getGraphCollection().toTransactions();
+    return getConfig().getGraphCollectionFactory()
+      .fromDataSets(graphHeads, vertices, edges);
   }
 }

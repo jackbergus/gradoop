@@ -1,25 +1,25 @@
-/*
- * This file is part of Gradoop.
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
  *
- * Gradoop is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Gradoop is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.gradoop.flink.model.impl.operators.matching.common.query;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.gradoop.common.util.GConstants;
+import org.gradoop.common.util.GradoopConstants;
+import org.gradoop.flink.model.impl.operators.matching.common.query.predicates.CNF;
+import org.gradoop.flink.model.impl.operators.matching.common.query.predicates.QueryPredicate;
 import org.s1ck.gdl.GDLHandler;
 import org.s1ck.gdl.model.Edge;
 import org.s1ck.gdl.model.GraphElement;
@@ -50,6 +50,10 @@ public class QueryHandler {
    * Graph radius
    */
   private Integer radius;
+  /**
+   * Graph components
+   */
+  private Map<Integer, Set<String>> components;
   /**
    * Cache: vId --> Vertex with Id == vId
    */
@@ -82,9 +86,9 @@ public class QueryHandler {
    */
   public QueryHandler(String gdlString) {
     gdlHandler = new GDLHandler.Builder()
-      .setDefaultGraphLabel(GConstants.DEFAULT_GRAPH_LABEL)
-      .setDefaultVertexLabel(GConstants.DEFAULT_VERTEX_LABEL)
-      .setDefaultEdgeLabel(GConstants.DEFAULT_EDGE_LABEL)
+      .setDefaultGraphLabel(GradoopConstants.DEFAULT_GRAPH_LABEL)
+      .setDefaultVertexLabel(GradoopConstants.DEFAULT_VERTEX_LABEL)
+      .setDefaultEdgeLabel(GradoopConstants.DEFAULT_EDGE_LABEL)
       .buildFromString(gdlString);
   }
 
@@ -104,6 +108,31 @@ public class QueryHandler {
    */
   public Collection<Edge> getEdges() {
     return gdlHandler.getEdges();
+  }
+
+  /**
+   * Returns the query graph as a collection of triples.
+   *
+   * @return triples
+   */
+  public Collection<Triple> getTriples() {
+    return getEdges().stream()
+      .map(e -> new Triple(
+        getVertexById(e.getSourceVertexId()), e, getVertexById(e.getTargetVertexId())))
+      .collect(Collectors.toList());
+  }
+  /**
+   * Returns all available predicates in Conjunctive Normal Form {@link CNF}. If there are no
+   * predicated defined in the query, a CNF containing zero predicates is returned.
+   *
+   * @return predicates
+   */
+  public CNF getPredicates() {
+    if (gdlHandler.getPredicates().isPresent()) {
+      return QueryPredicate.createFrom(gdlHandler.getPredicates().get()).asCNF();
+    } else {
+      return new CNF();
+    }
   }
 
   /**
@@ -158,6 +187,18 @@ public class QueryHandler {
   }
 
   /**
+   * Returns the mapping of vertices to connected graph components
+   *
+   * @return connected components
+   */
+  public Map<Integer, Set<String>> getComponents() {
+    if (components == null) {
+      components = GraphMetrics.getComponents(this);
+    }
+    return components;
+  }
+
+  /**
    * Checks if the given variable points to a vertex.
    *
    * @param variable the elements variable
@@ -206,26 +247,26 @@ public class QueryHandler {
   }
 
   /**
-   * Returns the Vertex assiciated with the given variable or {@code null} if the variable does
-   * not exist
+   * Returns the vertex associated with the given variable or {@code null} if the variable does
+   * not exist. The variable can be either user-defined or auto-generated.
    *
-   * @param variable variable
+   * @param variable query vertex variable
    * @return vertex or {@code null}
    */
   public Vertex getVertexByVariable(String variable) {
-    return gdlHandler.getVertexCache().get(variable);
+    return gdlHandler.getVertexCache(true, true).get(variable);
   }
 
 
   /**
-   * Returns the Edge assiciated with the given variable or {@code null} if the variable does
-   * not exist
+   * Returns the Edge associated with the given variable or {@code null} if the variable does
+   * not exist. The variable can be either user-defined or auto-generated.
    *
-   * @param variable variable
+   * @param variable query edge variable
    * @return edge or {@code null}
    */
   public Edge getEdgeByVariable(String variable) {
-    return gdlHandler.getEdgeCache().get(variable);
+    return gdlHandler.getEdgeCache(true, true).get(variable);
   }
 
   /**

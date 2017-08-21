@@ -1,12 +1,26 @@
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.gradoop.flink.algorithms.fsm.transactional.predgen;
 
 import org.apache.flink.api.java.DataSet;
-import org.gradoop.flink.algorithms.fsm.transactional.common.FSMConfig;
-import org.gradoop.flink.algorithms.fsm.transactional.tle.TransactionalFSMBase;
 import org.gradoop.flink.datagen.transactions.predictable.PredictableTransactionsGenerator;
 import org.gradoop.flink.model.GradoopFlinkTestBase;
-import org.gradoop.flink.model.impl.GraphTransactions;
-import org.gradoop.flink.representation.transactional.GraphTransaction;
+import org.gradoop.flink.model.api.epgm.GraphCollection;
+import org.gradoop.flink.model.api.operators.UnaryCollectionToCollectionOperator;
+import org.gradoop.flink.model.impl.layouts.transactional.tuples.GraphTransaction;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,9 +28,6 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 
-/**
- * Base class for Transactional Frequent Subgraph Mining with Generator Tests.
- */
 @RunWith(Parameterized.class)
 public abstract class PredictableGeneratorFSMTestBase extends GradoopFlinkTestBase {
 
@@ -36,7 +47,8 @@ public abstract class PredictableGeneratorFSMTestBase extends GradoopFlinkTestBa
     this.graphCount = Long.parseLong(graphCount);
   }
 
-  public abstract TransactionalFSMBase getImplementation(FSMConfig config);
+  public abstract UnaryCollectionToCollectionOperator getImplementation(
+    float minSupport, boolean directed);
 
   @Parameterized.Parameters(name = "{index} : {0}")
   public static Iterable data(){
@@ -82,21 +94,19 @@ public abstract class PredictableGeneratorFSMTestBase extends GradoopFlinkTestBa
 
   @Test
   public void withGeneratorTest() throws Exception {
-    FSMConfig config = new FSMConfig(threshold, directed);
-
-    GraphTransactions transactions = new PredictableTransactionsGenerator(
+    DataSet<GraphTransaction> transactions = new PredictableTransactionsGenerator(
       graphCount, 1, true, getConfig()).execute();
 
-    DataSet<GraphTransaction> frequentSubgraphs = getImplementation(config)
-      .execute(transactions)
-      .getTransactions();
+    GraphCollection frequentSubgraphs = getImplementation(threshold, directed)
+      .execute(getConfig().getGraphCollectionFactory().fromTransactions(transactions));
 
     if (directed){
       Assert.assertEquals(PredictableTransactionsGenerator
-        .containedDirectedFrequentSubgraphs(threshold), frequentSubgraphs.count());
+        .containedDirectedFrequentSubgraphs(threshold), frequentSubgraphs.getGraphHeads().count());
     } else {
       Assert.assertEquals(PredictableTransactionsGenerator
-        .containedUndirectedFrequentSubgraphs(threshold), frequentSubgraphs.count());
+        .containedUndirectedFrequentSubgraphs(threshold), frequentSubgraphs.getGraphHeads().count());
     }
   }
+
 }

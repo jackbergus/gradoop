@@ -1,31 +1,34 @@
-/*
- * This file is part of Gradoop.
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
  *
- * Gradoop is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Gradoop is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
-
 package org.gradoop.flink.io.impl.dot.functions;
 
+import  static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
+
+import java.util.Iterator;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.java.io.TextOutputFormat;
+import org.gradoop.common.model.api.entities.EPGMElement;
+import org.gradoop.common.model.impl.id.GradoopId;
 import org.gradoop.common.model.impl.pojo.Edge;
 import org.gradoop.common.model.impl.pojo.GraphHead;
 import org.gradoop.common.model.impl.pojo.Vertex;
 import org.gradoop.common.model.impl.properties.Properties;
 import org.gradoop.common.model.impl.properties.Property;
-import org.gradoop.common.util.GConstants;
-import org.gradoop.flink.representation.transactional.GraphTransaction;
+import org.gradoop.flink.model.impl.layouts.transactional.tuples.GraphTransaction;
 
 /**
  * Converts a GraphTransaction to the following .dot format:
@@ -42,72 +45,27 @@ import org.gradoop.flink.representation.transactional.GraphTransaction;
  *   }
  * </p>
  */
-public class DOTFileFormat
-  implements TextOutputFormat.TextFormatter<GraphTransaction> {
+public class DOTFileFormat implements TextOutputFormat.TextFormatter<GraphTransaction> {
   /**
-   * Whitespace
+   * id that needs to be update upon changes to this class' structure.
    */
-  private static final String WHITESPACE = " ";
+  private static final long serialVersionUID = 1L;
   /**
-   * .DOT header string
+   * .DOT vertex identifier prefix
    */
-  private static final String DOT_DIGRAPH_HEADER = "digraph";
-  /**
-   * .DOT block open string
-   */
-  private static final String DOT_BLOCK_OPEN = "{";
-  /**
-   * .DOT graph block open
-   */
-  private static final String DOT_GRAPH_TAG = "graph";
-  /**
-   * .DOT block close string
-   */
-  private static final String DOT_BLOCK_CLOSE = "}";
-  /**
-   * .DOT directed edge string
-   */
-  private static final String DOT_OUT_EDGE = "->";
-  /**
-   * .DOT attributes open string
-   */
-  private static final String DOT_ATTRIBUTES_OPEN = "[";
-  /**
-   * .DOT label open tag
-   */
-  private static final String DOT_LABEL_TAG = "label=\"";
-  /**
-   * .DOT attributes close string
-   */
-  private static final String DOT_ATTRIBUTES_CLOSE = "]";
-  /**
-   * .DOT line ending string
-   */
-  private static final String DOT_LINE_ENDING = ";";
-  /**
-   * .DOT attribute separator string
-   */
-  private static final String DOT_ATTRIBUTE_SEPARATOR = ",";
-  /**
-   * .DOT attribute open string
-   */
-  private static final String DOT_ATTRIBUTE_OPEN = "=\"";
-  /**
-   * .DOT attribute close string
-   */
-  private static final String DOT_ATTRIBUTE_CLOSE = "\"";
+  private static final String VERTEX_ID_PREFIX = "v";
   /**
    * flag to print graph head information to dot
    */
-  private boolean graphInformation;
+  private boolean printGraphHead;
 
   /**
    * Constructor
    *
-   * @param graphInformation flag to print graph head information
+   * @param printGraphHead true, iff graph head data shall be attached to the output
    */
-  public DOTFileFormat(Boolean graphInformation) {
-    this.graphInformation = graphInformation;
+  public DOTFileFormat(Boolean printGraphHead) {
+    this.printGraphHead = printGraphHead;
   }
 
   @Override
@@ -116,166 +74,147 @@ public class DOTFileFormat
     StringBuilder builder = new StringBuilder();
 
     //--------------------------------------------------------------------------
-    // write dot head lines and open block
+    // write DOT head lines and open block
     //--------------------------------------------------------------------------
 
-    // remove "-" from GradoopId (reserved character in dot format)
-    String graphHeadId = "g" + transaction.getGraphHead()
-      .getId().toString().replace("-", "");
-
+    GradoopId id = transaction.getGraphHead().getId();
     // writes for each graph:
     // digraph graphHeadId
     // {
-    builder.append(String.format("%s%s%s%n%s%n",
-      DOT_DIGRAPH_HEADER,
-      WHITESPACE,
-      graphHeadId,
-      DOT_BLOCK_OPEN));
+    builder.append("subgraph cluster_g")
+      .append(id)
+      .append("{\n");
 
     //--------------------------------------------------------------------------
-    // write graph information (optional)
-    // graph [label="label", property1="value1", ...];
+    // write DOT body
     //--------------------------------------------------------------------------
 
-    if (graphInformation) {
-      GraphHead graphHead = transaction.getGraphHead();
-
-      // writes:
-      // "graph"
-      builder.append(String.format("%s",
-        DOT_GRAPH_TAG));
-
-      // write dot attributes if existent
-      Properties graphProperties = graphHead.getProperties();
-
-      if (!graphHead.getLabel().equals(GConstants.DEFAULT_GRAPH_LABEL) ||
-        graphProperties != null && graphProperties.size() > 0) {
-
-        builder.append(writeDOTAttributes(
-          graphHead.getLabel(), graphProperties));
-      } else {
-        builder.append("[]");
-      }
-
-      // writes:
-      // ";"
-      builder.append(String.format("%s%n",
-        DOT_LINE_ENDING));
+    if (printGraphHead) {
+      writeGraphHead(transaction, builder);
     }
 
-    //--------------------------------------------------------------------------
-    // write vertex lines
-    // vertexId [label="label", property1="value1", ...];
-    //--------------------------------------------------------------------------
+    writeVertices(transaction, builder, id.toString());
 
-    for (Vertex vertex: transaction.getVertices()) {
-
-      // remove "-" from GradoopId (reserved character in dot format)
-      String vertexId = "v" + vertex.getId().toString().replace("-", "");
-
-      // writes for each vertex:
-      // "vertexId",
-      builder.append(String.format("%s",
-        vertexId));
-
-      // write dot attributes if existent
-      if (!vertex.getLabel().equals(GConstants.DEFAULT_VERTEX_LABEL) ||
-        vertex.getProperties().size() > 0) {
-
-        builder.append(writeDOTAttributes(
-          vertex.getLabel(), vertex.getProperties()));
-      }
-
-      // writes:
-      // ";"
-      builder.append(String.format("%s%n",
-        DOT_LINE_ENDING));
-    }
+    writeEdges(transaction, builder, id.toString());
 
     //--------------------------------------------------------------------------
-    // write edge lines
-    // sourceId->targetId [label="label", property1="value1", ...];
+    // close DOT block
     //--------------------------------------------------------------------------
 
-    for (Edge edge: transaction.getEdges()) {
-
-      // remove "-" from GradoopId (reserved character in dot format)
-      String sourceId = "v" + edge.getSourceId().toString().replace("-", "");
-      String targetId = "v" + edge.getTargetId().toString().replace("-", "");
-
-      // writes for each edge:
-      // "sourceId->targetId"
-      builder.append(String.format("%s%s%s",
-        sourceId,
-        DOT_OUT_EDGE,
-        targetId));
-
-      // write dot attributes if existent
-      if (!edge.getLabel().equals(GConstants.DEFAULT_EDGE_LABEL) ||
-        edge.getProperties().size() > 0) {
-        builder.append(writeDOTAttributes(
-          edge.getLabel(), edge.getProperties()));
-      }
-
-      // writes:
-      // ";"
-      builder.append(String.format("%s%n",
-        DOT_LINE_ENDING));
-    }
-
-    //--------------------------------------------------------------------------
-    // close dot block
-    //--------------------------------------------------------------------------
-
-    builder.append(String.format("%s", DOT_BLOCK_CLOSE));
+    builder.append("}\n");
 
     return builder.toString();
   }
 
   /**
-   * Writes all attributes of the epgm element as string
+   * Adds graph head information to the specified builder.
    *
-   * @param label         label of the epgm element
-   * @param properties  List of properties
-   * @return              properties as string
+   * Output: label="label";
+   * @param transaction graph transaction
+   * @param builder string builder to append
    */
-  private String writeDOTAttributes(String label, Properties properties) {
+  private void writeGraphHead(GraphTransaction transaction, StringBuilder builder) {
+    GraphHead graphHead = transaction.getGraphHead();
 
-    StringBuilder attributeBuilder = new StringBuilder();
+    writeLabel(builder, graphHead, "#AAAAAA");
 
-    // write:
-    // " ["
-    attributeBuilder.append(String.format("%s%s",
-      WHITESPACE,
-      DOT_ATTRIBUTES_OPEN));
+    builder.append(";\n");
+  }
 
-    // writes:
-    // "label="label""
-    if (!label.equals(GConstants.DEFAULT_GRAPH_LABEL)) {
-      attributeBuilder.append(String.format("%s%s%s",
-        DOT_LABEL_TAG,
-        label,
-        DOT_ATTRIBUTE_CLOSE));
+  /**
+   * Adds vertex information to the specified builder.
+   *
+   * vertexId [label="label", property1="value1", ...];
+   *
+   * @param transaction graph transaction
+   * @param builder string builder to append
+   * @param suffix id suffix specific for the current {@link GraphTransaction}
+   */
+  private void writeVertices(GraphTransaction transaction, StringBuilder builder, String suffix) {
+    for (Vertex vertex: transaction.getVertices()) {
+      // writes for each vertex:
+      // "v1234",
+      builder.append(VERTEX_ID_PREFIX)
+        .append(vertex.getId())
+        .append(suffix)
+        .append(" [ shape=Mrecord, ");
+
+      writeLabel(builder, vertex, "#000000");
+
+      // writes:
+      // ";"
+      builder.append("];\n");
     }
+  }
 
-    // writes for each property:
-    // ",propertyKey1=propertyValue1,propertyKey2=propertyValue2,..."
+  /**
+   * Adds edge information to the specified builder
+   *
+   * sourceId->targetId [label="label", property1="value1", ...];
+   *
+   * @param transaction graph transaction
+   * @param builder string builder to append
+   * @param suffix id suffix specific for the current {@link GraphTransaction}
+   */
+  private void writeEdges(GraphTransaction transaction, StringBuilder builder, String suffix) {
+    for (Edge edge: transaction.getEdges()) {
+
+      builder.append(VERTEX_ID_PREFIX)
+        .append(edge.getSourceId())
+        .append(suffix)
+        .append("->")
+        .append(VERTEX_ID_PREFIX)
+        .append(edge.getTargetId())
+        .append(suffix)
+        .append(" [");
+      // write dot attributes if existent
+      writeLabel(builder, edge, "#666666");
+      builder.append("];\n");
+    }
+  }
+
+  /**
+   * Writes the specified label and properties as DOT HTML label string (table)
+   *
+   * output: label=<<table>...</table>>
+   *
+   * @param builder string builder to append
+   * @param elem graph element with id, label and properties
+   * @param color color for header background and properties text
+   */
+  private void writeLabel(StringBuilder builder, EPGMElement elem, String color) {
+    String label = elem.getLabel();
+    String id = elem.getId().toString();
+    Properties properties = elem.getProperties();
+    String lbl = StringUtils.isEmpty(label) ? id : label;
+
     if (properties != null && properties.size() > 0) {
-      for (Property property : properties) {
-        attributeBuilder.append(String.format("%s%s%s%s%s",
-          DOT_ATTRIBUTE_SEPARATOR,
-          property.getKey(),
-          DOT_ATTRIBUTE_OPEN,
-          property.getValue(),
-          DOT_ATTRIBUTE_CLOSE));
+      // writes properties as rows in html table
+      //write white on black label/id as header
+      builder.append("label=<")
+        .append("<font color=\"").append(color).append("\">")
+        .append("<table border=\"0\" cellborder=\"0\" cellpadding=\"3\">")
+        .append("<tr><td colspan=\"2\" bgcolor=\"")
+        .append(color)
+        .append("\"><font color=\"white\">")
+        .append(escapeHtml4(lbl))
+        .append("</font></td></tr>");
+
+      Iterator<Property> iterator = properties.iterator();
+      while (iterator.hasNext()) {
+        Property property = iterator.next();
+        builder.append("<tr><td>")
+          .append(escapeHtml4(property.getKey()))
+          .append("</td><td>")
+          .append(escapeHtml4(property.getValue().toString()))
+          .append("</td></tr>");
       }
+      builder.append("</table></font>>");
+    } else {
+      //write id/label as node label in dot
+      builder.append("label=\"")
+        .append(escapeHtml4(lbl))
+        .append("\"");
     }
-
-    // writes:
-    // "]"
-    attributeBuilder.append(String.format("%s",
-      DOT_ATTRIBUTES_CLOSE));
-
-    return attributeBuilder.toString();
   }
 }

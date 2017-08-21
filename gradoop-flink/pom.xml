@@ -72,6 +72,16 @@
             <artifactId>flink-hbase_2.11</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>me.lemire.integercompression</groupId>
+            <artifactId>JavaFastPFOR</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-hadoop-compatibility_2.11</artifactId>
+        </dependency>
+
         <!-- Test dependencies -->
 
         <!-- Gradoop -->

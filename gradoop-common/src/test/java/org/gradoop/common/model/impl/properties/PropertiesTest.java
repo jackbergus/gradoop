@@ -1,3 +1,18 @@
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.gradoop.common.model.impl.properties;
 
 import com.google.common.collect.Lists;
@@ -122,6 +137,14 @@ public class PropertiesTest {
     removed = properties.remove(Property.create(KEY_2, BOOL_VAL_1));
     assertEquals(1, properties.size());
     assertNull(removed);
+  }
+
+  @Test
+  public void testClear() throws Exception {
+    Properties properties = Properties.create();
+    properties.set(KEY_1, BOOL_VAL_1);
+    properties.clear();
+    assertEquals("wrong size", 0, properties.size());
   }
 
   @Test

@@ -1,20 +1,18 @@
-/*
- * This file is part of Gradoop.
+/**
+ * Copyright © 2014 - 2017 Leipzig University (Database Research Group)
  *
- * Gradoop is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Gradoop is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with Gradoop. If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.gradoop.flink.model.impl.operators.matching.common.statistics;
 
 import java.io.IOException;
@@ -131,8 +129,8 @@ public abstract class GraphStatisticsReader {
    * connecting,isActive,2
    * EOF
    */
-  public static final String FILE_DISTINCT_EDGE_PROPERTY_VALUES_BY_LABEL_AND_PROPERTY_KEY =
-    "distinct_edge_property_values_by_label_and_property_name";
+  public static final String FILE_DISTINCT_EDGE_PROPERTIES_BY_LABEL =
+    "distinct_edge_properties_by_label";
 
   /**
    * Each line contains the vertex label a property name and the number of distinct property
@@ -143,8 +141,8 @@ public abstract class GraphStatisticsReader {
    * City,name,25
    * EOF
    */
-  public static final String FILE_DISTINCT_VERTEX_PROPERTY_VALUES_BY_LABEL_AND_PROPERTY_KEY =
-    "distinct_vertex_property_values_by_label_and_property_name";
+  public static final String FILE_DISTINCT_VERTEX_PROPERTIES_BY_LABEL =
+    "distinct_vertex_properties_by_label";
 
   /**
    * Each line contains the edge property name and the number of distinct property
@@ -155,8 +153,7 @@ public abstract class GraphStatisticsReader {
    * isActive,2
    * EOF
    */
-  public static final String FILE_DISTINCT_EDGE_PROPERTY_VALUES_BY_PROPERTY_KEY =
-    "distinct_edge_property_values_by_property_name";
+  public static final String FILE_DISTINCT_EDGE_PROPERTIES = "distinct_edge_properties";
 
   /**
    * Each line contains the vertex property name and the number of distinct property
@@ -167,8 +164,7 @@ public abstract class GraphStatisticsReader {
    * name,25
    * EOF
    */
-  public static final String FILE_DISTINCT_VERTEX_PROPERTY_VALUES_BY_PROPERTY_KEY =
-    "distinct_vertex_property_values_by_property_name";
+  public static final String FILE_DISTINCT_VERTEX_PROPERTIES = "distinct_vertex_properties";
 
   /**
    * Reads a single {@link Long} value from the specified file.
